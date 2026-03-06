@@ -12,8 +12,8 @@ using TaskFlowManagement.Infrastructure.Data;
 namespace TaskFlowManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260304155631_AddIndexes")]
-    partial class AddIndexes
+    [Migration("20260305204051_FullSchema_v2")]
+    partial class FullSchema_v2
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,13 +33,22 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("FileName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("TaskItemId")
                         .HasColumnType("int");
@@ -47,9 +56,14 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                     b.Property<DateTime>("UploadedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("UploadedById")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("TaskItemId");
+
+                    b.HasIndex("UploadedById");
 
                     b.ToTable("Attachments");
                 });
@@ -63,11 +77,13 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
@@ -84,7 +100,8 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -97,11 +114,91 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TaskItemId");
+                    b.HasIndex("TaskItemId")
+                        .HasDatabaseName("IX_Comments_TaskItemId");
 
                     b.HasIndex("UserId");
 
                     b.ToTable("Comments");
+                });
+
+            modelBuilder.Entity("TaskFlowManagement.Core.Entities.Customer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("TaskFlowManagement.Core.Entities.Expense", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedById")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("ExpenseDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ExpenseType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("ProjectId")
+                        .HasDatabaseName("IX_Expenses_ProjectId");
+
+                    b.ToTable("Expenses");
                 });
 
             modelBuilder.Entity("TaskFlowManagement.Core.Entities.Priority", b =>
@@ -112,12 +209,17 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("Level")
-                        .HasColumnType("int");
+                    b.Property<string>("ColorHex")
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
+
+                    b.Property<byte>("Level")
+                        .HasColumnType("tinyint");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
 
@@ -132,24 +234,94 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateOnly?>("ActualEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("Budget")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("CustomerId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("OwnerId")
                         .HasColumnType("int");
 
+                    b.Property<DateOnly?>("PlannedEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<byte>("Priority")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("OwnerId");
+                    b.HasIndex("CustomerId")
+                        .HasDatabaseName("IX_Projects_CustomerId");
+
+                    b.HasIndex("OwnerId")
+                        .HasDatabaseName("IX_Projects_OwnerId");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_Projects_Status");
 
                     b.ToTable("Projects");
+                });
+
+            modelBuilder.Entity("TaskFlowManagement.Core.Entities.ProjectMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LeftAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProjectRole")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_ProjectMembers_UserId");
+
+                    b.HasIndex("ProjectId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("ProjectMembers");
                 });
 
             modelBuilder.Entity("TaskFlowManagement.Core.Entities.Role", b =>
@@ -160,9 +332,14 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
 
@@ -177,9 +354,17 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ColorHex")
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
+
+                    b.Property<byte>("DisplayOrder")
+                        .HasColumnType("tinyint");
+
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
 
@@ -196,7 +381,8 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
 
@@ -211,11 +397,17 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal?>("ActualHours")
+                        .HasColumnType("decimal(6,1)");
+
                     b.Property<int?>("AssignedToId")
                         .HasColumnType("int");
 
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -224,17 +416,26 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<DateTime?>("DueDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal?>("EstimatedHours")
+                        .HasColumnType("decimal(6,1)");
+
                     b.Property<bool>("IsCompleted")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("ParentTaskId")
+                        .HasColumnType("int");
+
                     b.Property<int>("PriorityId")
                         .HasColumnType("int");
+
+                    b.Property<byte>("ProgressPercent")
+                        .HasColumnType("tinyint");
 
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
@@ -244,23 +445,40 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AssignedToId");
+                    b.HasIndex("AssignedToId")
+                        .HasDatabaseName("IX_TaskItems_AssignedToId");
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("CreatedAt");
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("IX_TaskItems_CreatedAt");
 
                     b.HasIndex("CreatedById");
 
-                    b.HasIndex("PriorityId");
+                    b.HasIndex("DueDate")
+                        .HasDatabaseName("IX_TaskItems_DueDate");
 
-                    b.HasIndex("ProjectId");
+                    b.HasIndex("ParentTaskId");
 
-                    b.HasIndex("StatusId");
+                    b.HasIndex("PriorityId")
+                        .HasDatabaseName("IX_TaskItems_PriorityId");
+
+                    b.HasIndex("ProjectId")
+                        .HasDatabaseName("IX_TaskItems_ProjectId");
+
+                    b.HasIndex("StatusId")
+                        .HasDatabaseName("IX_TaskItems_StatusId");
+
+                    b.HasIndex("ProjectId", "StatusId")
+                        .HasDatabaseName("IX_TaskItems_ProjectId_StatusId");
 
                     b.ToTable("TaskItems");
                 });
@@ -288,25 +506,50 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AvatarPath")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("FullName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<DateTime?>("LastLogin")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("Username")
+                        .IsUnique();
 
                     b.ToTable("Users");
                 });
@@ -334,7 +577,15 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TaskFlowManagement.Core.Entities.User", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("TaskItem");
+
+                    b.Navigation("UploadedBy");
                 });
 
             modelBuilder.Entity("TaskFlowManagement.Core.Entities.Comment", b =>
@@ -356,15 +607,60 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("TaskFlowManagement.Core.Entities.Expense", b =>
+                {
+                    b.HasOne("TaskFlowManagement.Core.Entities.User", "CreatedBy")
+                        .WithMany("CreatedExpenses")
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("TaskFlowManagement.Core.Entities.Project", "Project")
+                        .WithMany("Expenses")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("TaskFlowManagement.Core.Entities.Project", b =>
                 {
-                    b.HasOne("TaskFlowManagement.Core.Entities.User", "Owner")
+                    b.HasOne("TaskFlowManagement.Core.Entities.Customer", "Customer")
                         .WithMany("Projects")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("TaskFlowManagement.Core.Entities.User", "Owner")
+                        .WithMany("OwnedProjects")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("Customer");
+
                     b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("TaskFlowManagement.Core.Entities.ProjectMember", b =>
+                {
+                    b.HasOne("TaskFlowManagement.Core.Entities.Project", "Project")
+                        .WithMany("Members")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TaskFlowManagement.Core.Entities.User", "User")
+                        .WithMany("ProjectMemberships")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("TaskFlowManagement.Core.Entities.TaskItem", b =>
@@ -385,6 +681,11 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                         .HasForeignKey("CreatedById")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("TaskFlowManagement.Core.Entities.TaskItem", "ParentTask")
+                        .WithMany("SubTasks")
+                        .HasForeignKey("ParentTaskId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("TaskFlowManagement.Core.Entities.Priority", "Priority")
                         .WithMany("TaskItems")
@@ -409,6 +710,8 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("CreatedBy");
+
+                    b.Navigation("ParentTask");
 
                     b.Navigation("Priority");
 
@@ -460,6 +763,11 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                     b.Navigation("TaskItems");
                 });
 
+            modelBuilder.Entity("TaskFlowManagement.Core.Entities.Customer", b =>
+                {
+                    b.Navigation("Projects");
+                });
+
             modelBuilder.Entity("TaskFlowManagement.Core.Entities.Priority", b =>
                 {
                     b.Navigation("TaskItems");
@@ -467,6 +775,10 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
             modelBuilder.Entity("TaskFlowManagement.Core.Entities.Project", b =>
                 {
+                    b.Navigation("Expenses");
+
+                    b.Navigation("Members");
+
                     b.Navigation("Tasks");
                 });
 
@@ -491,6 +803,8 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     b.Navigation("Comments");
 
+                    b.Navigation("SubTasks");
+
                     b.Navigation("TaskTags");
                 });
 
@@ -500,9 +814,13 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
                     b.Navigation("Comments");
 
+                    b.Navigation("CreatedExpenses");
+
                     b.Navigation("CreatedTasks");
 
-                    b.Navigation("Projects");
+                    b.Navigation("OwnedProjects");
+
+                    b.Navigation("ProjectMemberships");
 
                     b.Navigation("UserRoles");
                 });

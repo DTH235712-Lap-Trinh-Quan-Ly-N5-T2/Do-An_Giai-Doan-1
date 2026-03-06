@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace TaskFlowManagement.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialFullSchema : Migration
+    public partial class FullSchema_v2 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,12 +17,30 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Categories", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Customers",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CompanyName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    ContactName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Customers", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -31,8 +49,9 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Level = table.Column<int>(type: "int", nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Level = table.Column<byte>(type: "tinyint", nullable: false),
+                    ColorHex = table.Column<string>(type: "nvarchar(7)", maxLength: 7, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -45,7 +64,8 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -58,7 +78,9 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    DisplayOrder = table.Column<byte>(type: "tinyint", nullable: false),
+                    ColorHex = table.Column<string>(type: "nvarchar(7)", maxLength: 7, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -71,7 +93,7 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -84,11 +106,15 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    FullName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Username = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    FullName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
+                    Phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    AvatarPath = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                    LastLogin = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -101,14 +127,28 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
+                    CustomerId = table.Column<int>(type: "int", nullable: true),
                     OwnerId = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    StartDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    PlannedEndDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    ActualEndDate = table.Column<DateOnly>(type: "date", nullable: true),
+                    Budget = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    Priority = table.Column<byte>(type: "tinyint", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Projects", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Projects_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_Projects_Users_OwnerId",
                         column: x => x.OwnerId,
@@ -142,17 +182,83 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Expenses",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ProjectId = table.Column<int>(type: "int", nullable: false),
+                    ExpenseType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ExpenseDate = table.Column<DateOnly>(type: "date", nullable: false),
+                    Note = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
+                    CreatedById = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Expenses", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Expenses_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Expenses_Users_CreatedById",
+                        column: x => x.CreatedById,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProjectMembers",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ProjectId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    ProjectRole = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    JoinedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LeftAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProjectMembers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProjectMembers_Projects_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Projects",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ProjectMembers_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "TaskItems",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
                     IsCompleted = table.Column<bool>(type: "bit", nullable: false),
+                    ProgressPercent = table.Column<byte>(type: "tinyint", nullable: false),
+                    EstimatedHours = table.Column<decimal>(type: "decimal(6,1)", nullable: true),
+                    ActualHours = table.Column<decimal>(type: "decimal(6,1)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     DueDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CompletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ProjectId = table.Column<int>(type: "int", nullable: false),
+                    ParentTaskId = table.Column<int>(type: "int", nullable: true),
                     CreatedById = table.Column<int>(type: "int", nullable: false),
                     AssignedToId = table.Column<int>(type: "int", nullable: true),
                     PriorityId = table.Column<int>(type: "int", nullable: false),
@@ -187,6 +293,12 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
+                        name: "FK_TaskItems_TaskItems_ParentTaskId",
+                        column: x => x.ParentTaskId,
+                        principalTable: "TaskItems",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
                         name: "FK_TaskItems_Users_AssignedToId",
                         column: x => x.AssignedToId,
                         principalTable: "Users",
@@ -206,10 +318,13 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FilePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FileName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    FilePath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    ContentType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    FileSizeBytes = table.Column<long>(type: "bigint", nullable: false),
                     UploadedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    TaskItemId = table.Column<int>(type: "int", nullable: false)
+                    TaskItemId = table.Column<int>(type: "int", nullable: false),
+                    UploadedById = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -220,6 +335,12 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                         principalTable: "TaskItems",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Attachments_Users_UploadedById",
+                        column: x => x.UploadedById,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -228,7 +349,7 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     TaskItemId = table.Column<int>(type: "int", nullable: false),
                     UserId = table.Column<int>(type: "int", nullable: false)
@@ -280,6 +401,11 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 column: "TaskItemId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Attachments_UploadedById",
+                table: "Attachments",
+                column: "UploadedById");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Comments_TaskItemId",
                 table: "Comments",
                 column: "TaskItemId");
@@ -290,9 +416,40 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Expenses_CreatedById",
+                table: "Expenses",
+                column: "CreatedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Expenses_ProjectId",
+                table: "Expenses",
+                column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectMembers_ProjectId_UserId",
+                table: "ProjectMembers",
+                columns: new[] { "ProjectId", "UserId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ProjectMembers_UserId",
+                table: "ProjectMembers",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Projects_CustomerId",
+                table: "Projects",
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Projects_OwnerId",
                 table: "Projects",
                 column: "OwnerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Projects_Status",
+                table: "Projects",
+                column: "Status");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TaskItems_AssignedToId",
@@ -305,9 +462,24 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 column: "CategoryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_TaskItems_CreatedAt",
+                table: "TaskItems",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TaskItems_CreatedById",
                 table: "TaskItems",
                 column: "CreatedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaskItems_DueDate",
+                table: "TaskItems",
+                column: "DueDate");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaskItems_ParentTaskId",
+                table: "TaskItems",
+                column: "ParentTaskId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_TaskItems_PriorityId",
@@ -318,6 +490,11 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 name: "IX_TaskItems_ProjectId",
                 table: "TaskItems",
                 column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TaskItems_ProjectId_StatusId",
+                table: "TaskItems",
+                columns: new[] { "ProjectId", "StatusId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_TaskItems_StatusId",
@@ -333,6 +510,18 @@ namespace TaskFlowManagement.Infrastructure.Migrations
                 name: "IX_UserRoles_RoleId",
                 table: "UserRoles",
                 column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Email",
+                table: "Users",
+                column: "Email",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Username",
+                table: "Users",
+                column: "Username",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -343,6 +532,12 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Comments");
+
+            migrationBuilder.DropTable(
+                name: "Expenses");
+
+            migrationBuilder.DropTable(
+                name: "ProjectMembers");
 
             migrationBuilder.DropTable(
                 name: "TaskTags");
@@ -370,6 +565,9 @@ namespace TaskFlowManagement.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Statuses");
+
+            migrationBuilder.DropTable(
+                name: "Customers");
 
             migrationBuilder.DropTable(
                 name: "Users");

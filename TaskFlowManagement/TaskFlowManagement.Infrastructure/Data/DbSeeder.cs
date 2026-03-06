@@ -1,181 +1,226 @@
-﻿using TaskFlowManagement.Core.Entities;
 using Microsoft.EntityFrameworkCore;
+using TaskFlowManagement.Core.Entities;
+using TaskFlowManagement.Infrastructure.Data.Seed;
 
 namespace TaskFlowManagement.Infrastructure.Data
 {
+    /// <summary>
+    /// Orchestrator seed data – gọi các Seeder nhỏ theo đúng thứ tự FK.
+    ///
+    /// THỨ TỰ BẮT BUỘC (do Foreign Key):
+    ///   1. Lookup tables (Roles, Priorities, Statuses, Categories, Tags)
+    ///   2. Users
+    ///   3. UserRoles (cần UserId + RoleId)
+    ///   4. Customers
+    ///   5. Projects (cần UserId + CustomerId)
+    ///   6. ProjectMembers (cần ProjectId + UserId)
+    ///   7. TaskItems (cần ProjectId + UserId + StatusId + PriorityId + CategoryId)
+    ///
+    /// ══════════════════════════════════════════════════════
+    /// ⚠️  KHI NÀO CẦN RESET DATABASE?
+    ///
+    ///   Nếu trước đây chạy version dùng SHA-256 (hash cũ),
+    ///   DB đang có hash sai format → login sẽ báo sai mật khẩu.
+    ///
+    ///   CÁCH RESET (chọn 1 trong 3):
+    ///
+    ///   [A] SQL Server Management Studio (SSMS):
+    ///       Kết nối → chuột phải TaskFlowManagementDb → Delete → OK
+    ///
+    ///   [B] Package Manager Console (Visual Studio):
+    ///       Tools → NuGet Package Manager → Package Manager Console
+    ///       Chọn Default project: TaskFlowManagement.Infrastructure
+    ///       Gõ lệnh:
+    ///           Drop-Database
+    ///       Xác nhận Y → Enter
+    ///
+    ///   [C] Terminal / CMD:
+    ///       cd TaskFlowManagement.Infrastructure
+    ///       dotnet ef database drop --force
+    ///
+    ///   Sau khi drop → chạy lại app → DB tự tạo mới + seed BCrypt.
+    /// ══════════════════════════════════════════════════════
+    /// </summary>
     public static class DbSeeder
     {
         public static async Task SeedAsync(AppDbContext context)
         {
-            // Nếu đã có user thì coi như đã seed
-            if (await context.Users.AnyAsync())
-                return;
-
-            var random = new Random();
-            var now = DateTime.UtcNow;
+            // Guard: chỉ seed khi DB hoàn toàn trống
+            // Nếu đã có user → bỏ qua toàn bộ (idempotent)
+            if (await context.Users.AnyAsync()) return;
 
             // =====================================================
-            // 1️⃣ LOOKUP TABLES (Seed trước để tránh lỗi FK)
+            // BƯỚC 1: LOOKUP TABLES
+            // Phải commit trước để có ID cho các bảng phụ thuộc
             // =====================================================
+            var roles      = LookupSeeder.GetRoles();
+            var priorities = LookupSeeder.GetPriorities();
+            var statuses   = LookupSeeder.GetStatuses();
+            var categories = LookupSeeder.GetCategories();
+            var tags       = LookupSeeder.GetTags();
 
-            var priorities = new List<Priority>
-            {
-                new Priority { Name = "Low" },
-                new Priority { Name = "Medium" },
-                new Priority { Name = "High" }
-            };
-
-            var statuses = new List<Status>
-            {
-                new Status { Name = "Todo" },
-                new Status { Name = "In Progress" },
-                new Status { Name = "Done" }
-            };
-
-            var categories = new List<Category>
-            {
-                new Category { Name = "Bug" },
-                new Category { Name = "Feature" },
-                new Category { Name = "Improvement" }
-            };
-
-            var tags = new List<Tag>
-            {
-                new Tag { Name = "Urgent" },
-                new Tag { Name = "UI" },
-                new Tag { Name = "Backend" },
-                new Tag { Name = "Database" },
-                new Tag { Name = "API" }
-            };
-
+            context.AddRange(roles);
             context.AddRange(priorities);
             context.AddRange(statuses);
             context.AddRange(categories);
             context.AddRange(tags);
-
             await context.SaveChangesAsync();
-
-            var priorityIds = priorities.Select(p => p.Id).ToList();
-            var statusIds = statuses.Select(s => s.Id).ToList();
-            var categoryIds = categories.Select(c => c.Id).ToList();
-            var tagIds = tags.Select(t => t.Id).ToList();
+            // Sau SaveChanges: roles[0].Id, priorities[0].Id, ... đã có giá trị từ DB
 
             // =====================================================
-            // 2️⃣ USERS
+            // BƯỚC 2: USERS (password hash bằng BCrypt – xem SeedHelper)
             // =====================================================
-
-            var users = Enumerable.Range(1, 15)
-                .Select(i => new User
-                {
-                    FullName = $"User {i}",
-                    Email = $"user{i}@test.com",
-                    PasswordHash = "123",
-                    IsActive = true
-                }).ToList();
-
-            context.Users.AddRange(users);
+            var users = UserSeeder.GetUsers();
+            context.AddRange(users);
             await context.SaveChangesAsync();
-
-            var userIds = users.Select(u => u.Id).ToList();
-
-            // =====================================================
-            // 3️⃣ PROJECTS
-            // =====================================================
-
-            var projects = Enumerable.Range(1, 10)
-                .Select(i => new Project
-                {
-                    Name = $"Project {i}",
-                    OwnerId = userIds[random.Next(userIds.Count)]
-                }).ToList();
-
-            context.Projects.AddRange(projects);
-            await context.SaveChangesAsync();
-
-            var projectIds = projects.Select(p => p.Id).ToList();
+            // Sau đây users[i].Id đã có giá trị
 
             // =====================================================
-            // 4️⃣ TASKS
+            // BƯỚC 3: USER ROLES – gán quyền theo username pattern
             // =====================================================
+            var adminRole   = roles.First(r => r.Name == "Admin");
+            var managerRole = roles.First(r => r.Name == "Manager");
+            var devRole     = roles.First(r => r.Name == "Developer");
 
-            var tasks = new List<TaskItem>();
-
-            for (int i = 1; i <= 200; i++) // tăng lên 200 để test stress
+            var userRoles = users.Select(u => new UserRole
             {
-                tasks.Add(new TaskItem
+                UserId = u.Id,
+                RoleId = u.Username switch
                 {
-                    Title = $"Task {i}",
-                    Description = $"Description for task {i}",
-                    ProjectId = projectIds[random.Next(projectIds.Count)],
-                    CreatedById = userIds[random.Next(userIds.Count)],
-                    AssignedToId = random.Next(0, 3) == 0
-                        ? null // tạo task chưa assign
-                        : userIds[random.Next(userIds.Count)],
-                    PriorityId = priorityIds[random.Next(priorityIds.Count)],
-                    StatusId = statusIds[random.Next(statusIds.Count)],
-                    CategoryId = categoryIds[random.Next(categoryIds.Count)],
-                    CreatedAt = now.AddDays(-random.Next(1, 60)),
-                    DueDate = now.AddDays(random.Next(-15, 30)) // có overdue
-                });
+                    "admin"                              => adminRole.Id,
+                    var n when n.StartsWith("manager")  => managerRole.Id,
+                    _                                   => devRole.Id
+                }
+            }).ToList();
+
+            context.AddRange(userRoles);
+            await context.SaveChangesAsync();
+
+            // =====================================================
+            // BƯỚC 4: CUSTOMERS + PROJECTS
+            // =====================================================
+            var customers = ProjectSeeder.GetCustomers();
+            context.AddRange(customers);
+            await context.SaveChangesAsync();
+
+            var projects = ProjectSeeder.GetProjects(users, customers);
+            context.AddRange(projects);
+            await context.SaveChangesAsync();
+
+            // =====================================================
+            // BƯỚC 5: PROJECT MEMBERS – mỗi project 3-5 devs ngẫu nhiên
+            // =====================================================
+            var devUsers = users.Where(u => u.Username.StartsWith("dev")).ToList();
+            var rng      = new Random(42); // seed cố định → reproducible
+
+            var members = new List<ProjectMember>();
+            foreach (var project in projects)
+            {
+                var assigned = devUsers
+                    .OrderBy(_ => rng.Next())
+                    .Take(rng.Next(3, 6))
+                    .ToList();
+
+                members.AddRange(assigned.Select(dev => new ProjectMember
+                {
+                    ProjectId   = project.Id,
+                    UserId      = dev.Id,
+                    ProjectRole = "Developer",
+                    JoinedAt    = project.CreatedAt
+                }));
+            }
+            context.AddRange(members);
+            await context.SaveChangesAsync();
+
+            // =====================================================
+            // BƯỚC 6: TASK ITEMS – 10 task mẫu mỗi project
+            // =====================================================
+            var taskList = BuildTaskItems(
+                projects, members, users, priorities, statuses, categories, rng);
+
+            context.AddRange(taskList);
+            await context.SaveChangesAsync();
+        }
+
+        // -------------------------------------------------------
+        // Tách logic tạo task ra method riêng cho gọn
+        // -------------------------------------------------------
+        private static List<TaskItem> BuildTaskItems(
+            List<Project>       projects,
+            List<ProjectMember> members,
+            List<User>          users,
+            List<Priority>      priorities,
+            List<Status>        statuses,
+            List<Category>      categories,
+            Random              rng)
+        {
+            var now = DateTime.UtcNow;
+
+            // Template (title, category, priority)
+            var templates = new[]
+            {
+                ("Phân tích yêu cầu hệ thống",     "Feature",     "High"),
+                ("Thiết kế database schema",         "Feature",     "High"),
+                ("Cài đặt môi trường development",   "Feature",     "Medium"),
+                ("Xây dựng module xác thực Login",   "Feature",     "Critical"),
+                ("API quản lý người dùng",           "Feature",     "High"),
+                ("UI Dashboard tổng quan",           "Feature",     "Medium"),
+                ("Fix bug phân quyền sai",           "Bug",         "High"),
+                ("Viết unit test Auth module",       "Testing",     "Medium"),
+                ("Tối ưu query performance",         "Improvement", "Medium"),
+                ("Review code Pull Request #12",     "Research",    "Low"),
+            };
+
+            var result = new List<TaskItem>();
+
+            foreach (var project in projects)
+            {
+                var projectDevs = members
+                    .Where(m => m.ProjectId == project.Id)
+                    .Select(m => users.First(u => u.Id == m.UserId))
+                    .ToList();
+
+                var owner = users.First(u => u.Id == project.OwnerId);
+
+                for (int i = 0; i < templates.Length; i++)
+                {
+                    var (title, catName, priName) = templates[i];
+                    var priority = priorities.First(p => p.Name == priName);
+                    var status   = statuses[rng.Next(statuses.Count)];
+                    var category = categories.FirstOrDefault(c => c.Name == catName)
+                                   ?? categories.First();
+                    var assignee = projectDevs.Count > 0
+                        ? projectDevs[i % projectDevs.Count]
+                        : owner;
+
+                    var progress = status.Name == "Done"       ? (byte)100
+                                 : status.Name == "InProgress" ? (byte)rng.Next(20, 80)
+                                 : (byte)0;
+
+                    result.Add(new TaskItem
+                    {
+                        Title           = title,
+                        Description     = $"[{project.Name}] {title}",
+                        ProjectId       = project.Id,
+                        CreatedById     = owner.Id,
+                        AssignedToId    = assignee.Id,
+                        PriorityId      = priority.Id,
+                        StatusId        = status.Id,
+                        CategoryId      = category.Id,
+                        DueDate         = now.AddDays(rng.Next(-7, 30)),
+                        ProgressPercent = progress,
+                        IsCompleted     = progress == 100,
+                        EstimatedHours  = rng.Next(2, 20),
+                        CreatedAt       = project.CreatedAt.AddDays(rng.Next(0, 10)),
+                        UpdatedAt       = now,
+                        CompletedAt     = progress == 100
+                                          ? now.AddDays(-rng.Next(1, 7))
+                                          : null
+                    });
+                }
             }
 
-            context.TaskItems.AddRange(tasks);
-            await context.SaveChangesAsync();
-
-            var taskIds = tasks.Select(t => t.Id).ToList();
-
-            // =====================================================
-            // 5️⃣ COMMENTS
-            // =====================================================
-
-            var comments = Enumerable.Range(1, 400)
-                .Select(i => new Comment
-                {
-                    Content = $"Comment {i}",
-                    TaskItemId = taskIds[random.Next(taskIds.Count)],
-                    UserId = userIds[random.Next(userIds.Count)],
-                    CreatedAt = now.AddDays(-random.Next(1, 30))
-                }).ToList();
-
-            context.Comments.AddRange(comments);
-
-            // =====================================================
-            // 6️⃣ ATTACHMENTS
-            // =====================================================
-
-            var attachments = Enumerable.Range(1, 150)
-                .Select(i => new Attachment
-                {
-                    FileName = $"file{i}.txt",
-                    FilePath = $"/uploads/file{i}.txt",
-                    TaskItemId = taskIds[random.Next(taskIds.Count)]
-                }).ToList();
-
-            context.Attachments.AddRange(attachments);
-
-            // =====================================================
-            // 7️⃣ TASK TAGS (TRÁNH DUPLICATE COMPOSITE KEY)
-            // =====================================================
-
-            var taskTagSet = new HashSet<(int TaskId, int TagId)>();
-
-            while (taskTagSet.Count < 400)
-            {
-                taskTagSet.Add((
-                    taskIds[random.Next(taskIds.Count)],
-                    tagIds[random.Next(tagIds.Count)]
-                ));
-            }
-
-            var taskTags = taskTagSet.Select(tt => new TaskTag
-            {
-                TaskItemId = tt.TaskId,
-                TagId = tt.TagId
-            });
-
-            context.TaskTags.AddRange(taskTags);
-
-            await context.SaveChangesAsync();
+            return result;
         }
     }
 }
